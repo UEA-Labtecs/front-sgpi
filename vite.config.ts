@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/auth': 'http://localhost:8000',
-      '/patents': 'http://localhost:8000',
+      '/auth': 'https://sgpi-api.onrender.com',
+      '/patents': 'https://sgpi-api.onrender.com',
     }
   }
 })
