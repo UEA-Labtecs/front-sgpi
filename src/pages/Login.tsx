@@ -26,10 +26,23 @@ const Login = () => {
 
     const handleLogin = async () => {
         try {
-            const response = await api.post("/auth/login", new URLSearchParams({
-                username,
-                password,
-            }));
+            const response = await api.post(
+                "/auth/login",
+                new URLSearchParams({
+                    grant_type: "password",
+                    username,
+                    password,
+                    scope: "",
+                    client_id: "string",
+                    client_secret: "********",
+                }).toString(),
+                {
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                }
+            );
+
 
             const { access_token } = response.data;
 
@@ -104,7 +117,7 @@ const Login = () => {
                         variant="outlined"
                         margin="normal"
                         value={username}
-                        onChange={(e: any) => setUsername(e.target.value)}
+                        onChange={(e: any) => setUsername(e.target.value.toString())}
                         sx={{
                             '& .MuiOutlinedInput-root': {
                                 borderRadius: 2,
