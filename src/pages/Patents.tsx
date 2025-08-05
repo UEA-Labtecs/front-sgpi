@@ -11,7 +11,9 @@ import {
     Dialog,
     DialogTitle,
     DialogContent,
-    Typography
+    Typography,
+    Stack,
+    TextField
 } from "@mui/material";
 import PatentTimeline from "./PatentTimeline";
 import Layout from "../components/Layout";
@@ -30,6 +32,24 @@ const Patents: React.FC = () => {
     const [selectedPatent, setSelectedPatent] = useState<Patent | null>(null);
     const [open, setOpen] = useState(false);
 
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const handleSearchAndCreate = async () => {
+        if (!searchTerm) return;
+
+        try {
+            await api.get(`/patents/search`, {
+                params: {
+                    termo: searchTerm,
+                    quantidade: 3,
+                },
+            });
+            fetchPatents(); // Atualiza a listagem após cadastrar
+            setSearchTerm(""); // Limpa o campo
+        } catch (error) {
+            console.error("Erro ao buscar e cadastrar patentes", error);
+        }
+    };
     useEffect(() => {
         fetchPatents();
     }, []);
@@ -74,7 +94,17 @@ const Patents: React.FC = () => {
                 <Typography variant="h4" gutterBottom>
                     Minhas Patentes
                 </Typography>
-
+                <Stack direction="row" spacing={2} mb={3}>
+                    <TextField
+                        label="Buscar patente"
+                        variant="outlined"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <Button variant="contained" onClick={handleSearchAndCreate}>
+                        Buscar e Cadastrar
+                    </Button>
+                </Stack>
                 <TableContainer>
                     <Table>
                         <TableHead>

@@ -14,6 +14,6 @@ RUN npm run build
 # Instalar o pacote serve globalmente
 RUN npm install -g serve
 
-EXPOSE 3000
+EXPOSE 3001
 
-CMD ["serve", "-s", "dist", "-l", "3000"]
+CMD ["serve", "-s", "dist", "-l", "3001"]
