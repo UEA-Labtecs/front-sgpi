@@ -3,7 +3,7 @@ version: "3.9"
 services:
   frontend:
     build:
-      context: ./frontend
+      context: ./
       dockerfile: Dockerfile
     container_name: sgpi-frontend
     ports:
