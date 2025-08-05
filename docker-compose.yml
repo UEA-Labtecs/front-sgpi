@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sgpi-frontend
+    ports:
+      - "3001:3001" # Apenas para acesso local; o NGINX deve fazer proxy na produção
+    restart: unless-stopped
