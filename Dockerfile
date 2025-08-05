@@ -10,9 +10,7 @@ COPY . .
 
 RUN npm run build
 
-# Usar um servidor estático em Node para evitar o Nginx
-# Instalar o pacote serve globalmente
-RUN npm install -g serve
+RUN npm install 
 
 EXPOSE 3001
 
