@@ -56,7 +56,7 @@ const Patents: React.FC = () => {
 
     const fetchPatents = async () => {
         try {
-            const response = await api.get<[]>("/patents");
+            const response = await api.get<[]>("/patents/");
             setPatents(response.data);
         } catch (error) {
             console.error("Erro ao buscar patentes", error);

@@ -36,7 +36,7 @@ export default function Register() {
             const { access_token } = response.data;
 
             localStorage.setItem("token", access_token);
-            navigate("/patents");
+            navigate("/patent-list");
         } catch (err) {
             setError("Erro ao cadastrar. Verifique os dados.");
         }
