@@ -65,7 +65,7 @@ const Dashboard: React.FC = () => {
 
                 {/* Cards */}
                 <Grid container spacing={2} sx={{ mb: 2 }}>
-                    <Grid item xs={12} md={6}>
+                    <Grid component="div">
                         <Paper sx={{ p: 2 }}>
                             <Typography variant="subtitle2" color="text.secondary">
                                 Minhas Patentes
@@ -75,7 +75,7 @@ const Dashboard: React.FC = () => {
                             </Typography>
                         </Paper>
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid >
                         <Paper sx={{ p: 2 }}>
                             <Typography variant="subtitle2" color="text.secondary">
                                 Patentes Relacionadas
