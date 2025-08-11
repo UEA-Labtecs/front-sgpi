@@ -3,6 +3,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Patents from './pages/Patents';
 import './index.css';
+import Dashboard from './pages/Dashboard';
 
 function App() {
   const isAuthenticated = !!localStorage.getItem('token');
@@ -18,6 +19,10 @@ function App() {
             element={isAuthenticated ? <Patents /> : <Navigate to="/login" />}
           />
           <Route path="*" element={<Navigate to="/login" />} />
+          <Route
+            path="/dashboard"
+            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
+          />
         </Routes>
       </div>
     </Router>

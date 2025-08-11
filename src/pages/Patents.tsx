@@ -13,53 +13,81 @@ import {
     DialogContent,
     Typography,
     Stack,
-    TextField
+    TextField,
+    CircularProgress,
 } from "@mui/material";
 import PatentTimeline from "./PatentTimeline";
 import Layout from "../components/Layout";
 import { api } from "../services/api.service";
 
-export interface Patent {
+export interface RelatedPatent {
     id: number;
     titulo: string;
     numero_pedido: string;
+    url_detalhe?: string;
+    depositante?: string;
+    inventores?: string;
+}
+
+export interface UserPatent {
+    id: number;
+    titulo: string;
+    descricao?: string;
     status: number;
     info?: Record<number, { info: string }>;
+    patents?: RelatedPatent[];
 }
 
 const Patents: React.FC = () => {
-    const [patents, setPatents] = useState<Patent[]>([]);
-    const [selectedPatent, setSelectedPatent] = useState<Patent | null>(null);
+    const [userPatents, setUserPatents] = useState<UserPatent[]>([]);
+    const [selectedPatent, setSelectedPatent] = useState<UserPatent | null>(null);
     const [open, setOpen] = useState(false);
 
-    const [searchTerm, setSearchTerm] = useState("");
+    // form de criação de "minha patente"
+    const [titulo, setTitulo] = useState("");
+    const [descricao, setDescricao] = useState("");
+    const [creating, setCreating] = useState(false);
+    const [loadingRow, setLoadingRow] = useState<number | null>(null); // quando abre modal e puxa detalhe
 
-    const handleSearchAndCreate = async () => {
-        if (!searchTerm) return;
-
-        try {
-            await api.get(`/patents/search`, {
-                params: {
-                    termo: searchTerm,
-                    quantidade: 3,
-                },
-            });
-            fetchPatents(); // Atualiza a listagem após cadastrar
-            setSearchTerm(""); // Limpa o campo
-        } catch (error) {
-            console.error("Erro ao buscar e cadastrar patentes", error);
-        }
-    };
     useEffect(() => {
-        fetchPatents();
+        fetchUserPatents();
     }, []);
 
-    const fetchPatents = async () => {
+    const fetchUserPatents = async () => {
         try {
-            const response = await api.get<[]>("/patents/");
-            setPatents(response.data);
+            const { data } = await api.get<UserPatent[]>("/patents");
+            setUserPatents(data);
         } catch (error) {
-            console.error("Erro ao buscar patentes", error);
+            console.error("Erro ao listar minhas patentes", error);
+        }
+    };
+
+    const createUserPatent = async () => {
+        if (!titulo.trim()) return;
+        try {
+            setCreating(true);
+            await api.post<UserPatent>("/patents/minhas-patentes", { titulo, descricao });
+            setTitulo("");
+            setDescricao("");
+            await fetchUserPatents();
+        } catch (e) {
+            console.error("Erro ao criar minha patente", e);
+        } finally {
+            setCreating(false);
+        }
+    };
+
+    const openTimeline = async (id: number) => {
+        try {
+            setLoadingRow(id);
+            // pega o detalhe já com as relacionadas
+            const { data } = await api.get<UserPatent>(`/patents/${id}`);
+            setSelectedPatent(data);
+            setOpen(true);
+        } catch (e) {
+            console.error("Erro ao buscar detalhes da minha patente", e);
+        } finally {
+            setLoadingRow(null);
         }
     };
 
@@ -70,23 +98,22 @@ const Patents: React.FC = () => {
         if (!selectedPatent) return;
 
         try {
-            await api.put(`/patents/${selectedPatent.id}/etapas`, {
+            const { data } = await api.put(`/patents/${selectedPatent.id}/etapas`, {
                 status: updatedStatus,
                 info: updatedInfo,
-            });
+            }); // data: UserPatent
 
-            setPatents((prev) =>
-                prev.map((p) =>
-                    p.id === selectedPatent.id
-                        ? { ...p, status: updatedStatus, info: updatedInfo }
-                        : p
-                )
+            // reflete na tabela
+            setUserPatents((prev) =>
+                prev.map((p) => (p.id === data.id ? { ...p, ...data } : p))
             );
+
+            // reflete no modal/timeline
+            setSelectedPatent((prev) => (prev && prev.id === data.id ? { ...prev, ...data } : prev));
         } catch (error) {
             console.error("Erro ao atualizar patente", error);
         }
     };
-
 
     return (
         <Layout>
@@ -94,44 +121,70 @@ const Patents: React.FC = () => {
                 <Typography variant="h4" gutterBottom>
                     Minhas Patentes
                 </Typography>
-                <Stack direction="row" spacing={2} mb={3}>
+
+                {/* Criar "minha patente" */}
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mb={3}>
                     <TextField
-                        label="Buscar patente"
+                        label="Título da minha patente"
                         variant="outlined"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        value={titulo}
+                        onChange={(e) => setTitulo(e.target.value)}
+                        fullWidth
                     />
-                    <Button variant="contained" onClick={handleSearchAndCreate}>
-                        Buscar e Cadastrar
+                    <TextField
+                        label="Descrição (opcional)"
+                        variant="outlined"
+                        value={descricao}
+                        onChange={(e) => setDescricao(e.target.value)}
+                        fullWidth
+                    />
+                    <Button
+                        variant="contained"
+                        onClick={createUserPatent}
+                        disabled={creating || !titulo.trim()}
+                    >
+                        {creating ? <CircularProgress size={20} /> : "Cadastrar"}
                     </Button>
                 </Stack>
+
+                {/* Listagem das minhas patentes */}
                 <TableContainer>
                     <Table>
                         <TableHead>
                             <TableRow>
                                 <TableCell>Título</TableCell>
-                                <TableCell>Nº Pedido</TableCell>
+                                <TableCell>Descrição</TableCell>
+                                <TableCell>Status</TableCell>
                                 <TableCell>Ações</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {patents.map((patent) => (
+                            {userPatents.map((patent) => (
                                 <TableRow key={patent.id}>
                                     <TableCell>{patent.titulo}</TableCell>
-                                    <TableCell>{patent.numero_pedido}</TableCell>
+                                    <TableCell>{patent.descricao || "-"}</TableCell>
+                                    <TableCell>{patent.status ?? 0}</TableCell>
                                     <TableCell>
                                         <Button
                                             variant="outlined"
-                                            onClick={() => {
-                                                setSelectedPatent(patent);
-                                                setOpen(true);
-                                            }}
+                                            onClick={() => openTimeline(patent.id)}
                                         >
-                                            Ver Etapas
+                                            {loadingRow === patent.id ? (
+                                                <CircularProgress size={18} />
+                                            ) : (
+                                                "Ver Etapas"
+                                            )}
                                         </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
+                            {userPatents.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={4}>
+                                        <Typography>Nenhuma patente cadastrada ainda.</Typography>
+                                    </TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </TableContainer>
@@ -141,10 +194,7 @@ const Patents: React.FC = () => {
                     <DialogTitle>Status da Patente</DialogTitle>
                     <DialogContent>
                         {selectedPatent && (
-                            <PatentTimeline
-                                patent={selectedPatent}
-                                onUpdate={updatePatentInfo}
-                            />
+                            <PatentTimeline patent={selectedPatent} onUpdate={updatePatentInfo} />
                         )}
                     </DialogContent>
                 </Dialog>

@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/auth': 'localhost:8009',
-      '/patents': 'localhost:8009',
+      '/auth': 'localhost:8001',
+      '/patents': 'localhost:8001',
     }
   }
 })

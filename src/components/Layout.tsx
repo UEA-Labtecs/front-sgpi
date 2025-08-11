@@ -41,9 +41,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
     const getMenuItems = () => {
         const commonItems = [
-            { label: "Cadastrar Patente", path: "/patent-list" },
             { label: "Listar Patentes", path: "/patent-list" },
-            { label: "Dashboard", path: "/patent-list" },
+            { label: "Dashboard", path: "/dashboard" },
         ];
 
         if (user.role === "Administrador") {
