@@ -118,7 +118,7 @@ const PatentTimeline: React.FC<PatentTimelineProps> = ({ patent, onUpdate }) => 
             await api.get("/patents/search", {
                 params: { termo: searchTerm, quantidade: 3, user_patent_id: patent.id },
             });
-            const { data } = await api.get<UserPatent>(`/user-patents/${patent.id}`);
+            const { data } = await api.get<UserPatent>(`/patents/${patent.id}`);
             setRelated(data.patents || []);
             setSearchTerm("");
         } catch (e) {
