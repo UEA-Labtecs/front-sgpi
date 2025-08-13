@@ -15,26 +15,19 @@ api.interceptors.response.use(
     (r) => r,
     (err) => {
         const status = err?.response?.status;
-        const cfg = err?.config ?? {};
-        // 🔕 permitir silenciar toasts por requisição
-        const skip = cfg.headers?.["X-Skip-Error-Toast"] === "1";
+        const url = err?.config?.url || "";
+        const onLoginPage = window.location.pathname === "/login";
+        const isAuthEndpoint = url.includes("/auth/login") || url.includes("/auth/register");
 
-        if (status === 401) {
+        if (status === 401 && !onLoginPage && !isAuthEndpoint) {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
             window.location.href = "/login";
             return Promise.reject(err);
         }
 
-        if (!skip) {
-            const msg =
-                err?.response?.data?.detail ??
-                err?.response?.data?.message ??
-                (typeof err?.response?.data === "string" ? err.response.data : null) ??
-                err?.message ??
-                "Erro inesperado. Tente novamente.";
-            toast.error(msg);
-        }
+        // ... resto do toast de erro
         return Promise.reject(err);
     }
 );
+

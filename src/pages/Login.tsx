@@ -16,6 +16,7 @@ import {
 import logo from "../assets/logo.png";
 import backgroundImage from "../assets/copia2.png";
 import { api } from "../services/api.service";
+import { setToken } from "../services/auth.service";
 
 const Login = () => {
     const [username, setUsername] = useState("");
@@ -46,14 +47,15 @@ const Login = () => {
 
 
             const { access_token } = response.data;
-
+            setToken(access_token); 
             localStorage.setItem("token", access_token);
             try {
                 const { data } = await api.get("/auth/me");
                 localStorage.setItem("user", JSON.stringify(data));
             } catch {/* interceptor 401 já lida */ }
             toast.success("Bem-vindo!");
-            navigate(`/patent-list`);
+            setToken(access_token);
+            navigate("/patent-list", { replace: true });
         } catch (err) {
             setError("Usuário ou senha incorretos.");
         }

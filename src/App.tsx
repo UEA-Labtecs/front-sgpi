@@ -6,9 +6,12 @@ import Patents from './pages/Patents';
 import Dashboard from './pages/Dashboard';
 import RequireRole from './components/RequireRoles';
 import Forbidden403 from './pages/Forbidden403';
+import * as auth from "./services/auth.service";
+import { useEffect, useState } from 'react';
 
 function App() {
-  const isAuthenticated = !!localStorage.getItem('token');
+  const [isAuthenticated, setIsAuthenticated] = useState(auth.isAuthenticated());
+  useEffect(() => auth.onAuthChange(() => setIsAuthenticated(auth.isAuthenticated())), []);
 
   return (
     <Router>

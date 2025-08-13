@@ -1,5 +1,6 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
+import { safeGetUser } from "../services/auth.service";
 
 type Props = {
     allowed: string[];          // ex: ['admin']
@@ -7,12 +8,8 @@ type Props = {
 };
 
 function getRole(): string {
-    try {
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        return (user?.role || "").toLowerCase();
-    } catch {
-        return "";
-    }
+    const u = safeGetUser() as any;
+    return (u?.role || "").toLowerCase();
 }
 
 export default function RequireRole({ allowed, children }: Props) {

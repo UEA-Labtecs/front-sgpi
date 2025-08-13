@@ -18,16 +18,18 @@ import toast from "react-hot-toast";
 
 const drawerWidth = 240;
 const appBarHeight = 64; // padrão do MUI AppBar com Toolbar
+import { safeGetUser, setToken } from "../services/auth.service";
 
 interface LayoutProps {
     children: ReactNode;
 }
 
+
 // src/components/Layout.tsx (troque o topo do componente)
 const Layout: React.FC<LayoutProps> = ({ children }) => {
     const navigate = useNavigate();
+    const user = safeGetUser() || {};
     const isAuthenticated = !!localStorage.getItem("token");
-    const [user, setUser] = React.useState<{ role?: string } | null>(null);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -35,14 +37,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             return;
         }
         // carrega /auth/me se ainda não tiver
-        const cached = localStorage.getItem("user");
-        if (cached) {
-            try { setUser(JSON.parse(cached)); } catch { }
-        }
+        
         (async () => {
             try {
                 const { data } = await api.get("/auth/me");
-                setUser(data);
                 localStorage.setItem("user", JSON.stringify(data));
             } catch {
                 // 401 já é tratado pelo interceptor
@@ -51,10 +49,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }, [isAuthenticated, navigate]);
 
     const handleLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        toast("Você saiu da sessão.");
-        navigate("/login");
+        setToken(null);
+        navigate("/login", { replace: true });
     };
 
     const getMenuItems = () => {
