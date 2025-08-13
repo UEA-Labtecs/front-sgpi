@@ -12,6 +12,7 @@ import Layout from "../components/Layout";
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from "recharts";
+import toast from "react-hot-toast";
 
 const stepLabels = [
     "1. Cadastro", "2. Busca", "3. Guia", "4. Exame formal", "5. Mérito", "6. Concessão"
@@ -28,6 +29,7 @@ const Dashboard: React.FC = () => {
             const res = await api.get<DashboardSummary>("/dashboard/summary");
             setData(res.data);
         } catch (e) {
+            toast.error("Erro ao carregar dashboard.");
             console.error("Erro ao carregar dashboard", e);
         } finally {
             setLoading(false);

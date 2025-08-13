@@ -38,8 +38,10 @@ import { type UserPatent, type RelatedPatent } from "./Patents";
 
 interface PatentTimelineProps {
     patent: UserPatent;
-    onUpdate: (info: Record<number, { info: string; files?: string[] }>, status: number) => Promise<void> | void;
+    onUpdateStatus: (status: number) => Promise<void> | void; // apenas status
 }
+
+type StageLocal = { description: string; file?: File | null; url?: string };
 
 const statuses = [
     "1ª Etapa: Cadastrada com sucesso",
@@ -50,67 +52,92 @@ const statuses = [
     "6ª Etapa: Concessão",
 ];
 
-const PatentTimeline: React.FC<PatentTimelineProps> = ({ patent, onUpdate }) => {
-    const [formData, setFormData] = useState<Record<number, { info: string; files?: string[] }>>(
-        () => (patent.info as any) || {}
-    );
-    const [currentStep, setCurrentStep] = useState<number>(() => patent.status || 0);
-    const [editModeStep, setEditModeStep] = useState<number | null>(null);
-    const [isFinalized, setIsFinalized] = useState(false);
+const PatentTimeline: React.FC<PatentTimelineProps> = ({ patent, onUpdateStatus }) => {
+    const [currentStep, setCurrentStep] = useState<number>(patent.status ?? 0);
 
-    // Etapa 2
+    // etapas 3..6 => indexes 2..5 (estado local de descrição/arquivo/url)
+    const [stageLocal, setStageLocal] = useState<Record<number, StageLocal>>({});
+
+    // —— estados que faltavam e causavam os erros:
+    const [isFinalized, setIsFinalized] = useState(false);
+    const [editModeStep, setEditModeStep] = useState<number | null>(null);
+
+    // etapa 2 (busca INPI)
     const [showSearch, setShowSearch] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [searchLoading, setSearchLoading] = useState(false);
-    const [related, setRelated] = useState<RelatedPatent[]>(() => patent.patents || []);
+    const [related, setRelated] = useState<RelatedPatent[]>(() => patent.patents ?? []);
     const [expandRelated, setExpandRelated] = useState<Record<number, boolean>>({});
 
+    const role = (JSON.parse(localStorage.getItem("user") || "{}")?.role || "").toLowerCase();
+    const isViewer = role === "viewer" || role === "read_only" || role === "leitor";
+
     useEffect(() => {
-        setFormData((patent.info as any) || {});
-        setCurrentStep(patent.status || 0);
-        setRelated(patent.patents || []);
+        setCurrentStep(patent.status ?? 0);
+        setRelated(patent.patents ?? []);
+
+        // buscar URLs existentes para 3..6 (se houver arquivo no back)
+        [3, 4, 5, 6].forEach(async (stage) => {
+            try {
+                const { data } = await api.get<{ url: string }>(
+                    `/patents/stages/${patent.id}/${stage}/url`,
+                    { headers: { "X-Skip-Error-Toast": "1" } }   // 🔕 silencia 404 esperado
+                );
+                setStageLocal((prev) => ({
+                    ...prev,
+                    [stage - 1]: { ...(prev[stage - 1] || {}), url: data.url },
+                }));
+            } catch {
+                // sem arquivo ainda — silencioso
+            }
+        });
     }, [patent]);
 
-    // Regra geral de edição:
-    // - etapa 1 sempre leitura
-    // - etapa atual editável
-    // - etapas concluídas (index < currentStep) podem ser editadas ao clicar "Editar"
+    // regra: etapa 1 é leitura; etapa atual é editável; etapas anteriores só ao entrar em modo edição
     const isEditable = (index: number) => {
+        if (isViewer) return false;        // <- trava tudo para viewer
         if (index === 0) return false;
         if (index === currentStep) return true;
-        if (index < currentStep) return index === editModeStep; // concluída só quando em modo edição
+        if (index < currentStep) return index === editModeStep;
         return false;
     };
 
-    const handleInputChange = (stepIndex: number, value: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            [stepIndex]: { ...(prev[stepIndex] || {}), info: value },
-        }));
+    const handleDescChange = (idx: number, value: string) =>
+        setStageLocal((p) => ({ ...p, [idx]: { ...(p[idx] || {}), description: value } }));
+
+    const handleFileChange = (idx: number, list: FileList | null) =>
+        setStageLocal((p) => ({ ...p, [idx]: { ...(p[idx] || {}), file: list?.[0] || null } }));
+
+    const saveStage = async (idx: number) => {
+        // idx 2..5 => stage 3..6
+        const stage = idx + 1; // 3..6
+        const form = new FormData();
+        form.append("stage", String(stage));
+        if (stageLocal[idx]?.description) form.append("description", stageLocal[idx].description);
+        if (stageLocal[idx]?.file) form.append("file", stageLocal[idx].file as Blob);
+
+        await api.post(`/patents/stages/${patent.id}`, form);
+
+        // recarrega URL assinada
+        try {
+            const { data: u } = await api.get<{ url: string }>(`/patents/stages/${patent.id}/${stage}/url`);
+            setStageLocal((prev) => ({ ...prev, [idx]: { ...(prev[idx] || {}), url: u.url, file: null } }));
+        } catch {
+            // sem arquivo
+        }
+
+        // saiu do modo edição (se estava em etapa concluída)
+        if (editModeStep === idx) setEditModeStep(null);
     };
 
-    const handleFilesChange = (stepIndex: number, files: FileList | null) => {
-        const names = files ? Array.from(files).map((f) => f.name) : [];
-        setFormData((prev) => ({
-            ...prev,
-            [stepIndex]: { ...(prev[stepIndex] || {}), files: names },
-        }));
+    const finalizeStep = async (idx: number) => {
+        const next = idx + 1; // avança (0..5)
+        await onUpdateStatus(next);
+        setCurrentStep(next);
+        if (next >= statuses.length - 1) setIsFinalized(true);
     };
 
-    const handleSave = async (stepIndex: number) => {
-        if (stepIndex === statuses.length - 1) setIsFinalized(true);
-        await onUpdate(formData as any, stepIndex); // salva info mantendo status atual
-        setEditModeStep(null);
-    };
-
-    // Finalizar qualquer etapa (GENÉRICO): avança status para a próxima
-    const finalizeStep = async (stepIndex: number) => {
-        const next = stepIndex + 1;
-        await onUpdate(formData as any, next); // backend grava status=next e retorna atualizado
-        setCurrentStep(next);                  // UX instantâneo; depois o prop `patent` sincroniza via efeito
-    };
-
-    // Etapa 2: busca INPI
+    // etapa 2: busca INPI
     const runINPISearch = async () => {
         if (!searchTerm.trim()) return;
         try {
@@ -177,12 +204,14 @@ const PatentTimeline: React.FC<PatentTimelineProps> = ({ patent, onUpdate }) => 
                                     </Stack>
                                 )}
 
-                                {/* ETAPA 2 - Busca (discreta/colapsada) + relacionados + finalizar */}
+                                {/* ETAPA 2 - busca + relacionados + finalizar */}
                                 {index === 1 && (
                                     <>
                                         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
                                             <Typography variant="subtitle1">Patentes relacionadas</Typography>
-                                            <Tooltip title={showSearch ? "Ocultar busca" : "Buscar/Adicionar patentes relacionadas"}>
+                                            <Tooltip
+                                                title={showSearch ? "Ocultar busca" : "Buscar/Adicionar patentes relacionadas"}
+                                            >
                                                 <Button
                                                     size="small"
                                                     variant="text"
@@ -281,27 +310,31 @@ const PatentTimeline: React.FC<PatentTimelineProps> = ({ patent, onUpdate }) => 
                                             </Box>
                                         )}
 
-                                        <Stack direction="row" justifyContent="flex-end" mt={2}>
+                                        {index === currentStep && (
                                             <Button
                                                 variant="contained"
                                                 color="success"
                                                 endIcon={<DoneAllIcon />}
-                                                disabled={currentStep !== 1}
-                                                onClick={() => finalizeStep(1)}
+                                                disabled={isViewer}
+                                                onClick={() => finalizeStep(index)}
                                             >
                                                 Finalizar etapa
                                             </Button>
-                                        </Stack>
-
+                                        )}
+                                        {editable && (
+                                            <Button variant="contained" startIcon={<SaveIcon />} disabled={isViewer} onClick={() => saveStage(index)}>
+                                                Salvar
+                                            </Button>
+                                        )}
                                         <Divider sx={{ my: 2 }} />
                                     </>
                                 )}
 
-                                {/* ETAPAS 3 a 6 - uploads + observações + lógica genérica de salvar/editar/finalizar */}
+                                {/* ETAPAS 3 a 6 - upload + descrição + salvar/finalizar */}
                                 {index >= 2 && (
                                     <>
                                         <Typography variant="subtitle2" gutterBottom>
-                                            Anexos da etapa
+                                            Arquivo da etapa
                                         </Typography>
                                         <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center">
                                             <Button
@@ -310,19 +343,21 @@ const PatentTimeline: React.FC<PatentTimelineProps> = ({ patent, onUpdate }) => 
                                                 component="label"
                                                 disabled={!editable}
                                             >
-                                                Selecionar arquivos
+                                                Selecionar arquivo
                                                 <input
                                                     hidden
-                                                    multiple
                                                     type="file"
-                                                    onChange={(e) => handleFilesChange(index, e.target.files)}
+                                                    onChange={(e) => handleFileChange(index, e.target.files)}
                                                 />
                                             </Button>
                                             <Typography variant="body2" color="text.secondary">
-                                                {formData[index]?.files?.length
-                                                    ? `${formData[index].files!.length} arquivo(s) selecionado(s)`
-                                                    : "Nenhum arquivo selecionado"}
+                                                {stageLocal[index]?.file?.name ?? "Nenhum arquivo selecionado"}
                                             </Typography>
+                                            {!!stageLocal[index]?.url && (
+                                                <Button href={stageLocal[index].url} target="_blank" rel="noreferrer">
+                                                    Abrir arquivo atual
+                                                </Button>
+                                            )}
                                         </Stack>
 
                                         <TextField
@@ -330,9 +365,9 @@ const PatentTimeline: React.FC<PatentTimelineProps> = ({ patent, onUpdate }) => 
                                             multiline
                                             rows={3}
                                             sx={{ mt: 2 }}
-                                            label="Observações da etapa"
-                                            value={formData[index]?.info || ""}
-                                            onChange={(e) => handleInputChange(index, e.target.value)}
+                                            label="Descrição/observações da etapa"
+                                            value={stageLocal[index]?.description ?? ""}
+                                            onChange={(e) => handleDescChange(index, e.target.value)}
                                             disabled={!editable}
                                         />
 
@@ -347,25 +382,23 @@ const PatentTimeline: React.FC<PatentTimelineProps> = ({ patent, onUpdate }) => 
                                                     Finalizar etapa
                                                 </Button>
                                             )}
-
-                                            {editable ? (
+                                            {editable && (
                                                 <Button
                                                     variant="contained"
                                                     startIcon={<SaveIcon />}
-                                                    onClick={() => handleSave(index)}
+                                                    onClick={() => saveStage(index)}
                                                 >
                                                     Salvar
                                                 </Button>
-                                            ) : (
-                                                index > 0 && concluded && (
-                                                    <Button
-                                                        variant="outlined"
-                                                        startIcon={<EditIcon />}
-                                                        onClick={() => setEditModeStep(index)}
-                                                    >
-                                                        Editar
-                                                    </Button>
-                                                )
+                                            )}
+                                            {!editable && index > 0 && index < currentStep && (
+                                                <Button
+                                                    variant="outlined"
+                                                    startIcon={<EditIcon />}
+                                                    onClick={() => setEditModeStep(index)}
+                                                >
+                                                    Editar
+                                                </Button>
                                             )}
                                         </Stack>
                                     </>

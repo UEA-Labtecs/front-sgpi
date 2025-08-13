@@ -13,6 +13,8 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
+import { api } from "../services/api.service";
+import toast from "react-hot-toast";
 
 const drawerWidth = 240;
 const appBarHeight = 64; // padrão do MUI AppBar com Toolbar
@@ -21,21 +23,37 @@ interface LayoutProps {
     children: ReactNode;
 }
 
+// src/components/Layout.tsx (troque o topo do componente)
 const Layout: React.FC<LayoutProps> = ({ children }) => {
     const navigate = useNavigate();
-
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
     const isAuthenticated = !!localStorage.getItem("token");
+    const [user, setUser] = React.useState<{ role?: string } | null>(null);
 
     useEffect(() => {
         if (!isAuthenticated) {
             navigate("/login");
+            return;
         }
+        // carrega /auth/me se ainda não tiver
+        const cached = localStorage.getItem("user");
+        if (cached) {
+            try { setUser(JSON.parse(cached)); } catch { }
+        }
+        (async () => {
+            try {
+                const { data } = await api.get("/auth/me");
+                setUser(data);
+                localStorage.setItem("user", JSON.stringify(data));
+            } catch {
+                // 401 já é tratado pelo interceptor
+            }
+        })();
     }, [isAuthenticated, navigate]);
 
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+        toast("Você saiu da sessão.");
         navigate("/login");
     };
 
@@ -44,11 +62,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             { label: "Listar Patentes", path: "/patent-list" },
             { label: "Dashboard", path: "/dashboard" },
         ];
-
-        if (user.role === "Administrador") {
+        if ((user?.role || "").toLowerCase() === "admin") {
             return [{ label: "Cadastrar Usuários", path: "/register" }, ...commonItems];
         }
-
         return commonItems;
     };
 

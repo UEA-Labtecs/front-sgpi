@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Patents from './pages/Patents';
@@ -10,6 +11,13 @@ function App() {
 
   return (
     <Router>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          success: { iconTheme: { primary: '#007B8F', secondary: '#fff' } },
+        }}
+      />
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 font-sans">
         <Routes>
           <Route path="/login" element={<Login />} />

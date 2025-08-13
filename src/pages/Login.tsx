@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import {
     Box,
@@ -47,6 +48,11 @@ const Login = () => {
             const { access_token } = response.data;
 
             localStorage.setItem("token", access_token);
+            try {
+                const { data } = await api.get("/auth/me");
+                localStorage.setItem("user", JSON.stringify(data));
+            } catch {/* interceptor 401 já lida */ }
+            toast.success("Bem-vindo!");
             navigate(`/patent-list`);
         } catch (err) {
             setError("Usuário ou senha incorretos.");

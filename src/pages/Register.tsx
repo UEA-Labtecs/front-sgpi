@@ -11,7 +11,7 @@ import {
     useMediaQuery,
 } from "@mui/material";
 import { motion } from "framer-motion";
-
+import { toast } from "react-hot-toast";
 import logo from "../assets/logo.png";
 import backgroundImage from "../assets/copia2.png";
 import { api } from "../services/api.service";
@@ -36,6 +36,7 @@ export default function Register() {
             const { access_token } = response.data;
 
             localStorage.setItem("token", access_token);
+            toast.success("Cadastro realizado com sucesso!");
             navigate("/patent-list");
         } catch (err) {
             setError("Erro ao cadastrar. Verifique os dados.");
