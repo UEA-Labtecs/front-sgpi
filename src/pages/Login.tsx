@@ -172,16 +172,6 @@ const Login = () => {
                         Entrar
                     </Button>
 
-                    <Typography
-                        variant="body2"
-                        align="center"
-                        sx={{ mt: 4, color: "text.secondary" }}
-                    >
-                        Não tem uma conta?{" "}
-                        <a href="/register" style={{ color: "#007B8F", textDecoration: "underline" }}>
-                            Cadastre-se
-                        </a>
-                    </Typography>
                 </CardContent>
             </Card>
         </Box>
