@@ -20,6 +20,7 @@ export default function Register() {
     const [email, setEmail] = useState("");
     const [name, setName] = useState("");
     const [password, setPassword] = useState("");
+    const [role, setRole] = useState("user"); // default role
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
     const theme = useTheme();
@@ -31,6 +32,7 @@ export default function Register() {
                 email,
                 name,
                 password,
+                role
             });
 
             const { access_token } = response.data;
@@ -155,6 +157,30 @@ export default function Register() {
                             },
                         }}
                     />
+
+                    <TextField
+                        fullWidth
+                        label="Função"
+                        select
+                        value={role}
+                        onChange={(e) => setRole(e.target.value)}
+                        SelectProps={{
+                            native: true,
+                        }}
+                        variant="outlined"
+                        margin="normal"
+                        sx={{
+                            "& .MuiOutlinedInput-root": {
+                                borderRadius: 2,
+                                "&:hover fieldset": { borderColor: "#007B8F" },
+                                "&.Mui-focused fieldset": { borderColor: "#007B8F" },
+                            },
+                        }}
+                    >
+                        <option value="user">Usuário</option>
+                        <option value="admin">Administrador</option>
+                        <option value="viewer">Visualizador</option>
+                    </TextField>
 
                     {error && (
                         <Typography color="error" sx={{ mt: 1 }}>
