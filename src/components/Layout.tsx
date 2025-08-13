@@ -50,6 +50,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
     const handleLogout = () => {
         setToken(null);
+        toast("Você saiu da sessão.");
         navigate("/login", { replace: true });
     };
 
