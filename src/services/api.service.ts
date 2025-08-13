@@ -25,7 +25,11 @@ api.interceptors.response.use(
             window.location.href = "/login";
             return Promise.reject(err);
         }
-
+        toast.error(
+            status === 401
+                ? "Sessão expirada. Faça login novamente."
+                : `Erro ao acessar ${url}. Código: ${status}.`
+        );
         // ... resto do toast de erro
         return Promise.reject(err);
     }
