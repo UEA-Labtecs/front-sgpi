@@ -12,7 +12,6 @@ import {
     Button,
     IconButton,
     useMediaQuery,
-    Paper
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
