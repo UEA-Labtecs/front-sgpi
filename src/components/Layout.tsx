@@ -1,4 +1,4 @@
-import React, { type ReactNode, useEffect } from "react";
+import React, { type ReactNode, useEffect, useState } from "react";
 import {
     Box,
     AppBar,
@@ -9,26 +9,33 @@ import {
     ListItem,
     ListItemText,
     Avatar,
-    Button
+    Button,
+    IconButton,
+    useMediaQuery,
+    Paper
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "@mui/material/styles";
+import MenuIcon from "@mui/icons-material/Menu"; // ✅ ícone correto
 import logo from "../assets/logo.png";
 import { api } from "../services/api.service";
 import toast from "react-hot-toast";
+import { safeGetUser, setToken } from "../services/auth.service";
 
 const drawerWidth = 240;
-const appBarHeight = 64; // padrão do MUI AppBar com Toolbar
-import { safeGetUser, setToken } from "../services/auth.service";
+const appBarHeight = 64;
 
 interface LayoutProps {
     children: ReactNode;
 }
 
-
-// src/components/Layout.tsx (troque o topo do componente)
 const Layout: React.FC<LayoutProps> = ({ children }) => {
     const navigate = useNavigate();
-    const user = safeGetUser() || {};
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const [user, setUser] = useState<any>(safeGetUser() || null);
     const isAuthenticated = !!localStorage.getItem("token");
 
     useEffect(() => {
@@ -36,14 +43,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             navigate("/login");
             return;
         }
-        // carrega /auth/me se ainda não tiver
-        
+        // carrega /auth/me na primeira vez para popular o menu com o papel certo
         (async () => {
             try {
                 const { data } = await api.get("/auth/me");
                 localStorage.setItem("user", JSON.stringify(data));
+                setUser(data); // força re-render do menu quando chegar
             } catch {
-                // 401 já é tratado pelo interceptor
+                /* 401 tratado no interceptor */
             }
         })();
     }, [isAuthenticated, navigate]);
@@ -65,78 +72,143 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         return commonItems;
     };
 
+    const drawer = (
+        <List sx={{ mt: 1 }}>
+            {getMenuItems().map((item, idx) => (
+                <ListItem
+                    component="div"
+                    key={idx}
+                    onClick={() => {
+                        navigate(item.path); 6
+                        if (isMobile) setMobileOpen(false); // fecha o menu no mobile ao navegar
+                    }}
+                    sx={{
+                        m: 1,
+                        borderRadius: 2,
+                        cursor: "pointer",
+                        transition: "all .2s",
+                        "&:hover": { backgroundColor: "#e0f7fa", transform: "scale(1.02)", boxShadow: 1 },
+                    }}
+                >
+                    <ListItemText
+                        primary={item.label}
+                        primaryTypographyProps={{ fontWeight: 500, color: "#007B8F" }}
+                    />
+                </ListItem>
+            ))}
+            {/* botão de sair dentro do drawer no mobile */}
+            {isMobile && (
+                <ListItem
+                    component="div"
+                    onClick={() => {
+                        setMobileOpen(false);
+                        handleLogout();
+                    }}
+                    sx={{
+                        m: 1,
+                        borderRadius: 2,
+                        cursor: "pointer",
+                        transition: "all .2s",
+                        "&:hover": { backgroundColor: "#ffecec", transform: "scale(1.02)" },
+                    }}
+                >
+                    <ListItemText
+                        primary="Sair"
+                        primaryTypographyProps={{ fontWeight: 500, color: "error.main" }}
+                    />
+                </ListItem>
+            )}
+        </List>
+    );
+
     return (
         <Box sx={{ display: "flex", width: "100%", minHeight: "100vh" }}>
-            {/* Barra superior */}
-            <AppBar position="fixed" sx={{ zIndex: 1300, backgroundColor: "#007B8F" }}>
+            <AppBar position="fixed" sx={{ zIndex: (t) => t.zIndex.drawer + 1, backgroundColor: "#007B8F" }}>
                 <Toolbar>
+                    {isMobile && (
+                        <IconButton
+                            edge="start"
+                            color="inherit"
+                            aria-label="abrir menu"
+                            onClick={() => setMobileOpen((s) => !s)}
+                            sx={{ mr: 1 }}
+                        >
+                            <MenuIcon /> {/* ✅ sem prop open */}
+                        </IconButton>
+                    )}
                     <Avatar src={logo} sx={{ mr: 2, width: 28, height: 40, p: 1 }} />
-                    <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                    <Typography
+                        variant="h6"
+                        sx={{ flexGrow: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                    >
                         Sistema de Gerenciamento de Patentes Industriais
                     </Typography>
-                    <Button color="inherit" onClick={handleLogout}>
-                        Sair
-                    </Button>
+                    {/* no desktop mantém o botão direto na appbar */}
+                    {!isMobile && (
+                        <Button color="inherit" onClick={handleLogout}>
+                            Sair
+                        </Button>
+                    )}
                 </Toolbar>
             </AppBar>
 
-            {/* Menu lateral */}
+            {/* Drawer mobile (temporary) */}
             <Drawer
-                variant="permanent"
+                variant="temporary"
+                open={isMobile && mobileOpen}
+                onClose={() => setMobileOpen(false)}
+                ModalProps={{ keepMounted: true }}
                 sx={{
-                    width: drawerWidth,
-                    flexShrink: 0,
-                    [`& .MuiDrawer-paper`]: {
+                    display: { xs: "block", md: "none" },
+                    "& .MuiDrawer-paper": {
                         width: drawerWidth,
                         boxSizing: "border-box",
+                        pt: `${appBarHeight}px`,
                         backgroundColor: "#f5f5f5",
-                        borderRight: "1px solid #ddd",
-                        paddingTop: `${appBarHeight}px`, // empurra o conteúdo do menu abaixo da AppBar
                     },
                 }}
             >
-                <List>
-                    {getMenuItems().map((item, index) => (
-                        <ListItem
-                            component="div"
-                            key={index}
-                            onClick={() => navigate(item.path)}
-                            sx={{
-                                m: 1,
-                                borderRadius: 2,
-                                cursor: "pointer",
-                                transition: "all 0.2s ease-in-out",
-                                "&:hover": {
-                                    backgroundColor: "#e0f7fa",
-                                    transform: "scale(1.02)",
-                                    boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
-                                },
-                            }}
-                        >
-                            <ListItemText
-                                primary={item.label}
-                                primaryTypographyProps={{
-                                    fontWeight: 500,
-                                    color: "#007B8F",
-                                }}
-                            />
-                        </ListItem>
-                    ))}
-                </List>
+                {drawer}
             </Drawer>
 
-            {/* Conteúdo principal */}
+            {/* Drawer desktop (permanent) */}
+            <Drawer
+                variant="permanent"
+                sx={{
+                    display: { xs: "none", md: "block" },
+                    width: drawerWidth,
+                    flexShrink: 0,
+                    "& .MuiDrawer-paper": {
+                        width: drawerWidth,
+                        boxSizing: "border-box",
+                        pt: `${appBarHeight}px`,
+                        backgroundColor: "#f5f5f5",
+                    },
+                }}
+                open
+            >
+                {drawer}
+            </Drawer>
+
+            {/* Conteúdo */}
             <Box
                 component="main"
                 sx={{
                     flexGrow: 1,
-                    padding: 3,
-                    width: `calc(100% - ${drawerWidth}px)`,
-                    marginTop: `${appBarHeight}px`, // empurra o conteúdo principal abaixo da AppBar
+                    display: "flex",
+                    flexDirection: "column",
+                    width: "100%",
+                    mt: `${appBarHeight}px`,
+                    height: `calc(100vh - ${appBarHeight}px)`,
+                    overflowY: "auto",
+                    overflowX: "hidden",        // 👈 bloqueia scroll lateral
+                    p: { xs: 2, md: 3 }
                 }}
             >
                 {children}
             </Box>
+
+
         </Box>
     );
 };

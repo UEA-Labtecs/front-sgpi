@@ -35,6 +35,8 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import { api } from "../services/api.service";
 import { type UserPatent, type RelatedPatent } from "./Patents";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 interface PatentTimelineProps {
     patent: UserPatent;
@@ -71,7 +73,8 @@ const PatentTimeline: React.FC<PatentTimelineProps> = ({ patent, onUpdateStatus 
 
     const role = (JSON.parse(localStorage.getItem("user") || "{}")?.role || "").toLowerCase();
     const isViewer = role === "viewer" || role === "read_only" || role === "leitor";
-
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
     useEffect(() => {
         setCurrentStep(patent.status ?? 0);
         setRelated(patent.patents ?? []);
@@ -161,13 +164,11 @@ const PatentTimeline: React.FC<PatentTimelineProps> = ({ patent, onUpdateStatus 
                 Timeline da Patente
             </Typography>
 
-            <Stepper activeStep={currentStep} alternativeLabel>
-                {statuses.map((label, index) => (
-                    <Step key={index}>
-                        <StepLabel>{label}</StepLabel>
-                    </Step>
-                ))}
-            </Stepper>
+            <Stepper
+                activeStep={currentStep}
+                orientation={isMobile ? "vertical" : "horizontal"}
+                alternativeLabel={!isMobile}
+            />
 
             <Box mt={4}>
                 {statuses.map((status, index) => {
@@ -314,6 +315,7 @@ const PatentTimeline: React.FC<PatentTimelineProps> = ({ patent, onUpdateStatus 
                                             <Button
                                                 variant="contained"
                                                 color="success"
+                                                fullWidth={isMobile}
                                                 endIcon={<DoneAllIcon />}
                                                 disabled={isViewer}
                                                 onClick={() => finalizeStep(index)}
