@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     Box,
@@ -9,84 +9,126 @@ import {
     Button,
     useTheme,
     useMediaQuery,
+    Stack,
+    MenuItem,
 } from "@mui/material";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 import logo from "../assets/logo.png";
 import backgroundImage from "../assets/copia2.png";
 import { api } from "../services/api.service";
+import { setToken } from "../services/auth.service";
 
 export default function Register() {
     const [email, setEmail] = useState("");
     const [name, setName] = useState("");
     const [password, setPassword] = useState("");
-    const [role, setRole] = useState("user"); // default role
+    const [role, setRole] = useState("user");
     const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+
     const navigate = useNavigate();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
+    // Só admins podem acessar essa tela
+    useEffect(() => {
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        if ((user?.role || "").toLowerCase() !== "admin") {
+            toast.error("Acesso restrito a administradores.");
+            navigate("/patent-list", { replace: true });
+        }
+    }, [navigate]);
+
     const handleRegister = async () => {
+        setError(null);
+
+        // validações simples
+        if (!name.trim()) return setError("Informe o nome.");
+        if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email)) return setError("Email inválido.");
+        if (password.length < 6) return setError("A senha deve ter ao menos 6 caracteres.");
+
         try {
+            setLoading(true);
+
             const response = await api.post("/auth/register", {
                 email,
                 name,
                 password,
-                role
+                role,
             });
 
             const { access_token } = response.data;
+            setToken(access_token); // configura axios + guarda token
 
-            localStorage.setItem("token", access_token);
+            // carrega /auth/me para refletir permissões no front
+            try {
+                const { data } = await api.get("/auth/me");
+                localStorage.setItem("user", JSON.stringify(data));
+            } catch {
+                /* se der 401, o interceptor trata */
+            }
+
             toast.success("Cadastro realizado com sucesso!");
-            navigate("/patent-list");
+            navigate("/patent-list", { replace: true });
         } catch (err) {
             setError("Erro ao cadastrar. Verifique os dados.");
+        } finally {
+            setLoading(false);
         }
     };
+
+    const roleOptions = [
+        { value: "user", label: "Usuário" },
+        { value: "viewer", label: "Visualizador" },
+        { value: "admin", label: "Administrador" },
+    ];
 
     return (
         <Box
             sx={{
-                minHeight: "100vh",
+                minHeight: "100dvh",
                 width: "100%",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                px: { xs: 1.5, sm: 2 },
+                py: { xs: 2, sm: 3 },
                 backgroundImage: `url(${backgroundImage})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 backgroundRepeat: "no-repeat",
-                px: 2,
             }}
         >
             <Card
+                elevation={0}
                 sx={{
                     width: "100%",
-                    maxWidth: 400,
-                    borderRadius: 4,
-                    boxShadow: 8,
-                    backgroundColor: "rgba(255, 255, 255, 0.92)",
-                    backdropFilter: "blur(6px)",
+                    maxWidth: { xs: 360, sm: 420 },
+                    borderRadius: { xs: 2, sm: 4 },
+                    boxShadow: { xs: 3, sm: 8 },
+                    backgroundColor: "rgba(255, 255, 255, 0.96)",
+                    backdropFilter: "blur(4px)",
                 }}
             >
                 <CardContent
                     component="form"
                     onSubmit={(e) => {
                         e.preventDefault();
-                        handleRegister();
+                        if (!loading) handleRegister();
                     }}
-                    sx={{ p: isMobile ? 4 : 5 }}
+                    sx={{ p: { xs: 3, sm: 4 } }}
                 >
                     <motion.h1
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8 }}
+                        transition={{ duration: 0.6 }}
                         style={{
-                            fontSize: 32,
-                            fontWeight: "bold",
+                            fontSize: isMobile ? 24 : 30,
+                            fontWeight: 700,
                             textAlign: "center",
                             color: "#007B8F",
+                            margin: 0,
                         }}
                     >
                         Cadastro
@@ -97,125 +139,138 @@ export default function Register() {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            width: 100,
-                            height: 100,
+                            width: { xs: 76, sm: 92 },
+                            height: { xs: 76, sm: 92 },
                             backgroundColor: "#007B8F",
                             borderRadius: "50%",
-                            margin: "24px auto",
-                            boxShadow: 3,
+                            my: { xs: 2, sm: 3 },
+                            mx: "auto",
+                            boxShadow: 2,
                         }}
                     >
-                        <img src={logo} alt="Logo" style={{ width: 60 }} />
+                        <img
+                            src={logo}
+                            alt="Logo"
+                            style={{ width: isMobile ? 44 : 60, height: "auto" }}
+                        />
                     </Box>
 
-                    <TextField
-                        fullWidth
-                        label="Nome"
-                        variant="outlined"
-                        margin="normal"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        sx={{
-                            "& .MuiOutlinedInput-root": {
-                                borderRadius: 2,
-                                "&:hover fieldset": { borderColor: "#007B8F" },
-                                "&.Mui-focused fieldset": { borderColor: "#007B8F" },
-                            },
-                        }}
-                    />
+                    <Stack spacing={1.25}>
+                        <TextField
+                            fullWidth
+                            label="Nome"
+                            variant="outlined"
+                            size="small"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            autoComplete="off"
+                            sx={{
+                                "& .MuiOutlinedInput-root": {
+                                    borderRadius: 2,
+                                    "&:hover fieldset": { borderColor: "#007B8F" },
+                                    "&.Mui-focused fieldset": { borderColor: "#007B8F" },
+                                },
+                            }}
+                        />
 
-                    <TextField
-                        fullWidth
-                        label="Email"
-                        type="email"
-                        variant="outlined"
-                        margin="normal"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        sx={{
-                            "& .MuiOutlinedInput-root": {
-                                borderRadius: 2,
-                                "&:hover fieldset": { borderColor: "#007B8F" },
-                                "&.Mui-focused fieldset": { borderColor: "#007B8F" },
-                            },
-                        }}
-                    />
+                        <TextField
+                            fullWidth
+                            label="Email"
+                            type="email"
+                            variant="outlined"
+                            size="small"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            autoComplete="email"
+                            sx={{
+                                "& .MuiOutlinedInput-root": {
+                                    borderRadius: 2,
+                                    "&:hover fieldset": { borderColor: "#007B8F" },
+                                    "&.Mui-focused fieldset": { borderColor: "#007B8F" },
+                                },
+                            }}
+                        />
 
-                    <TextField
-                        fullWidth
-                        label="Senha"
-                        type="password"
-                        variant="outlined"
-                        margin="normal"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        sx={{
-                            "& .MuiOutlinedInput-root": {
-                                borderRadius: 2,
-                                "&:hover fieldset": { borderColor: "#007B8F" },
-                                "&.Mui-focused fieldset": { borderColor: "#007B8F" },
-                            },
-                        }}
-                    />
+                        <TextField
+                            fullWidth
+                            label="Senha"
+                            type="password"
+                            variant="outlined"
+                            size="small"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            autoComplete="new-password"
+                            sx={{
+                                "& .MuiOutlinedInput-root": {
+                                    borderRadius: 2,
+                                    "&:hover fieldset": { borderColor: "#007B8F" },
+                                    "&.Mui-focused fieldset": { borderColor: "#007B8F" },
+                                },
+                            }}
+                        />
 
-                    <TextField
-                        fullWidth
-                        label="Função"
-                        select
-                        value={role}
-                        onChange={(e) => setRole(e.target.value)}
-                        SelectProps={{
-                            native: true,
-                        }}
-                        variant="outlined"
-                        margin="normal"
-                        sx={{
-                            "& .MuiOutlinedInput-root": {
-                                borderRadius: 2,
-                                "&:hover fieldset": { borderColor: "#007B8F" },
-                                "&.Mui-focused fieldset": { borderColor: "#007B8F" },
-                            },
-                        }}
-                    >
-                        <option value="user">Usuário</option>
-                        <option value="admin">Administrador</option>
-                        <option value="viewer">Visualizador</option>
-                    </TextField>
+                        <TextField
+                            fullWidth
+                            label="Função"
+                            select
+                            value={role}
+                            onChange={(e) => setRole(e.target.value)}
+                            variant="outlined"
+                            size="small"
+                            SelectProps={{ MenuProps: { PaperProps: { elevation: 3 } } }}
+                            sx={{
+                                "& .MuiOutlinedInput-root": {
+                                    borderRadius: 2,
+                                    "&:hover fieldset": { borderColor: "#007B8F" },
+                                    "&.Mui-focused fieldset": { borderColor: "#007B8F" },
+                                },
+                            }}
+                        >
+                            {roleOptions.map((opt) => (
+                                <MenuItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </MenuItem>
+                            ))}
+                        </TextField>
 
-                    {error && (
-                        <Typography color="error" sx={{ mt: 1 }}>
-                            {error}
+                        {error && (
+                            <Typography color="error" variant="body2">
+                                {error}
+                            </Typography>
+                        )}
+
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            fullWidth
+                            disabled={loading}
+                            sx={{
+                                mt: 0.5,
+                                height: 44,
+                                borderRadius: 2,
+                                fontWeight: 700,
+                                letterSpacing: 0.2,
+                                backgroundColor: "#007B8F",
+                                "&:hover": { backgroundColor: "#005f72" },
+                            }}
+                        >
+                            {loading ? "Cadastrando..." : "Cadastrar"}
+                        </Button>
+
+                        <Typography
+                            variant="body2"
+                            align="center"
+                            sx={{ mt: 2, color: "text.secondary" }}
+                        >
+                            Já possui uma conta?{" "}
+                            <a
+                                href="/login"
+                                style={{ color: "#007B8F", textDecoration: "underline" }}
+                            >
+                                Entrar
+                            </a>
                         </Typography>
-                    )}
-
-                    <Button
-                        type="submit"
-                        variant="contained"
-                        fullWidth
-                        sx={{
-                            mt: 3,
-                            borderRadius: 2,
-                            py: 1.5,
-                            fontWeight: "bold",
-                            backgroundColor: "#007B8F",
-                            "&:hover": {
-                                backgroundColor: "#005f72",
-                            },
-                        }}
-                    >
-                        Cadastrar
-                    </Button>
-
-                    <Typography
-                        variant="body2"
-                        align="center"
-                        sx={{ mt: 4, color: "text.secondary" }}
-                    >
-                        Já possui uma conta?{" "}
-                        <a href="/login" style={{ color: "#007B8F", textDecoration: "underline" }}>
-                            Entrar
-                        </a>
-                    </Typography>
+                    </Stack>
                 </CardContent>
             </Card>
         </Box>

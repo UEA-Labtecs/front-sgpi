@@ -140,7 +140,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                         variant="h6"
                         sx={{ flexGrow: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
                     >
-                        Sistema de Gerenciamento de Patentes Industriais
+                        {!isMobile ? "Sistema de Gerenciamento de Patentes Industriais" : "SGPI"}
                     </Typography>
                     {/* no desktop mantém o botão direto na appbar */}
                     {!isMobile && (
