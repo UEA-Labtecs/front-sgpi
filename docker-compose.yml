@@ -7,5 +7,5 @@ services:
       dockerfile: Dockerfile
     container_name: sgpi-frontend
     ports:
-      - "3001:3001" # Apenas para acesso local; o NGINX deve fazer proxy na produção
+      - "3004:3004" # Apenas para acesso local; o NGINX deve fazer proxy na produção
     restart: unless-stopped
