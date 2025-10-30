@@ -1,6 +1,11 @@
 const AUTH_EVENT = "auth-changed";
 
-export function safeGetUser<T = any>(): T | null {
+export interface User {
+    role?: string;
+    [key: string]: unknown;
+}
+
+export function safeGetUser<T = User>(): T | null {
     try {
         const raw = localStorage.getItem("user");
         if (!raw) return null;

@@ -1,25 +1,25 @@
-import React, { type ReactNode, useEffect, useState } from "react";
+import MenuIcon from "@mui/icons-material/Menu"; // ✅ ícone correto
 import {
-    Box,
     AppBar,
-    Toolbar,
-    Typography,
+    Avatar,
+    Box,
+    Button,
     Drawer,
+    IconButton,
     List,
     ListItem,
     ListItemText,
-    Avatar,
-    Button,
-    IconButton,
+    Toolbar,
+    Typography,
     useMediaQuery,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
-import MenuIcon from "@mui/icons-material/Menu"; // ✅ ícone correto
+import React, { type ReactNode, useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { api } from "../services/api.service";
-import toast from "react-hot-toast";
-import { safeGetUser, setToken } from "../services/auth.service";
+import { safeGetUser, setToken, type User } from "../services/auth.service";
 
 const drawerWidth = 240;
 const appBarHeight = 64;
@@ -34,7 +34,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
     const [mobileOpen, setMobileOpen] = useState(false);
-    const [user, setUser] = useState<any>(safeGetUser() || null);
+    const [user, setUser] = useState<User | null>(safeGetUser() || null);
     const isAuthenticated = !!localStorage.getItem("token");
 
     useEffect(() => {
@@ -78,7 +78,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     component="div"
                     key={idx}
                     onClick={() => {
-                        navigate(item.path); 6
+                        navigate(item.path);
                         if (isMobile) setMobileOpen(false); // fecha o menu no mobile ao navegar
                     }}
                     sx={{

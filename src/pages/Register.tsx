@@ -1,21 +1,21 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
     Box,
+    Button,
     Card,
     CardContent,
-    Typography,
-    TextField,
-    Button,
-    useTheme,
-    useMediaQuery,
-    Stack,
     MenuItem,
+    Stack,
+    TextField,
+    Typography,
+    useMediaQuery,
+    useTheme,
 } from "@mui/material";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import logo from "../assets/logo.png";
+import { useNavigate } from "react-router-dom";
 import backgroundImage from "../assets/copia2.png";
+import logo from "../assets/logo.png";
 import { api } from "../services/api.service";
 import { setToken } from "../services/auth.service";
 
@@ -71,7 +71,7 @@ export default function Register() {
 
             toast.success("Cadastro realizado com sucesso!");
             navigate("/patent-list", { replace: true });
-        } catch (err) {
+        } catch {
             setError("Erro ao cadastrar. Verifique os dados.");
         } finally {
             setLoading(false);

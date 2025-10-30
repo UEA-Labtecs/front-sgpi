@@ -1,6 +1,6 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { safeGetUser } from "../services/auth.service";
+import { safeGetUser, type User } from "../services/auth.service";
 
 type Props = {
     allowed: string[];          // ex: ['admin']
@@ -8,7 +8,7 @@ type Props = {
 };
 
 function getRole(): string {
-    const u = safeGetUser() as any;
+    const u = safeGetUser<User>();
     return (u?.role || "").toLowerCase();
 }
 
