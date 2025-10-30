@@ -6,8 +6,14 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/auth': 'localhost:8009',
-      '/patents': 'localhost:8009',
+      '/auth': {
+        target: 'http://api-sgpi.labtecs.com.br',
+        changeOrigin: true,
+      },
+      '/patents': {
+        target: 'http://api-sgpi.labtecs.com.br',
+        changeOrigin: true,
+      },
     }
   }
 })

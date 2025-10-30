@@ -1,8 +1,22 @@
 import axios from "axios";
 import { toast } from "react-hot-toast";
 
+// Em desenvolvimento, usa URL relativa para passar pelo proxy do Vite
+// Em produção, usa a variável de ambiente ou URL absoluta
+const getBaseURL = () => {
+    if (import.meta.env.VITE_API_URL) {
+        return import.meta.env.VITE_API_URL;
+    }
+    // Em desenvolvimento, usa URL relativa para passar pelo proxy
+    if (import.meta.env.DEV) {
+        return "";
+    }
+    // Fallback para produção
+    return "http://api-sgpi.labtecs.com.br";
+};
+
 export const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8000",
+    baseURL: getBaseURL(),
 });
 
 api.interceptors.request.use((config) => {
