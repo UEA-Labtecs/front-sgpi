@@ -155,7 +155,7 @@ jobs:
           fi
           
           # Definir porta do HOST (externa)
-          HOST_PORT="${PORT:-3004}"
+          HOST_PORT="${PORT:-5004}"
           # Porta interna do container (fixa em 3000)
           CONTAINER_PORT=3000
           

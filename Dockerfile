@@ -24,7 +24,7 @@ RUN npm run build
 # Install serve globally to serve static files
 RUN npm install -g serve
 
-EXPOSE 3004
+EXPOSE 5004
 
 # Serve the built application
-CMD ["serve", "-s", "dist", "-l", "3004"]
+CMD ["serve", "-s", "dist", "-l", "5004"]
