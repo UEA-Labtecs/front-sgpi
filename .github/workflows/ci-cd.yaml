@@ -156,8 +156,8 @@ jobs:
           
           # Definir porta do HOST (externa)
           HOST_PORT="${PORT:-5004}"
-          # Porta interna do container (fixa em 3000)
-          CONTAINER_PORT=3000
+          # Porta interna do container (fixa em ${PORT})
+          CONTAINER_PORT=${PORT}
           
           echo "🚀 Iniciando container:"
           echo "   📍 Host: ${HOST_PORT} → Container: ${CONTAINER_PORT}"
