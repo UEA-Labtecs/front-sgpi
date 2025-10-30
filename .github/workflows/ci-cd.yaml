@@ -146,7 +146,7 @@ jobs:
       - name: Start new container
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
-          PORT: ${{ vars.  }}
+          PORT: ${{ vars.PORT_FRONT_SGPI }}
         run: |
           # Validar se secret existe
           if [ -z "$VITE_API_URL" ]; then
